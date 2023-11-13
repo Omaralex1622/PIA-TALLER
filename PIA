@@ -396,3 +396,401 @@ def exportar_notas_cliente_a_excel(notas):
             nota['Cancelada']
         ]
         hoja.append(fila)
+
+    libro_trabajo.save(nombre_archivo)
+    print(f"Notas del cliente exportadas a {nombre_archivo}")
+
+
+def recuperar_nota():
+    print("Recuperar una nota cancelada:")
+    notas_canceladas = [nota for nota in Notas_canceladas if nota['Cancelada']]
+    if notas_canceladas:
+        print("Notas canceladas:")
+        for i, nota in enumerate(notas_canceladas, 1):
+            print(f"{i}. Folio: {nota['Folio']}, Fecha: {nota['Fecha']}, Cliente: {nota['Cliente']['Nombre']}")
+        while True:
+            try:
+                seleccion = int(input("Selecciona el número correspondiente a la nota que deseas recuperar (o 0 para salir): "))
+                if 1 <= seleccion <= len(notas_canceladas):
+                    nota_seleccionada = notas_canceladas[seleccion - 1]
+                    confirmacion = input(f"¿Deseas recuperar la nota {nota_seleccionada['Folio']}? (s/n): ").strip().lower()
+                    if confirmacion == 's':
+                        nota_seleccionada['Cancelada'] = False
+                        print(f"La nota {nota_seleccionada['Folio']} ha sido recuperada.")
+                    else:
+                        print(f"La nota {nota_seleccionada['Folio']} no fue recuperada.")
+                elif seleccion == 0:
+                    break
+                else:
+                    print("Opción inválida. Ingresa un número válido.")
+            except ValueError:
+                print("Opción inválida. Ingresa un número válido.")
+
+
+def generar_reporte(folio, nota):
+    if folio in Nota_registrada:
+        print(f"Reporte de la nota {folio}:")
+        print(f"Folio: {nota['Folio']}")
+        print(f"Fecha: {nota['Fecha']}")
+        print(f"Cliente: {nota['Cliente']['Nombre']}")
+        print(f"RFC del Cliente: {nota['Cliente']['RFC']}")
+        print("Servicios realizados:")
+        for servicio in nota['Servicios']:
+            print(f"- {servicio['Nombre']} (${servicio['Costo']})")
+        print(f"Monto Total: ${nota['Monto Total']}")
+        if nota['Cancelada']:
+            print("Estado: Cancelada")
+        else:
+            print("Estado: Activa")
+    elif folio in [nota['Folio'] for nota in Notas_canceladas]:
+        print(f"La nota {folio} corresponde a una nota cancelada.")
+    else:
+        print(f"No se encontró una nota con el folio {folio}.")
+
+
+def mostrar_menu(opciones):
+    print("\nOpciones disponibles:")
+    for i, opcion in enumerate(opciones, 1):
+        print(f"{i}. {opcion}")
+    while True:
+        try:
+            seleccion = int(input("Selecciona una opción: "))
+            if 1 <= seleccion <= len(opciones):
+                return seleccion
+            else:
+                print("Opción inválida. Ingresa un número válido.")
+        except ValueError:
+            print("Opción inválida. Ingresa un número válido.")
+
+def agregar_servicio(servicios_data):
+    while True:
+        clave_servicio = input("Ingrese la clave del servicio (deje vacío para generar automáticamente): ").strip()
+        
+        if not clave_servicio:
+            
+            clave_servicio = generar_clave_automatica()
+
+        nombre = input("Ingrese el nombre del servicio: ").strip()
+        costo = float(input("Ingrese el costo del servicio: "))
+        
+        if nombre and costo > 0:
+            servicios_data[clave_servicio] = {'Nombre': nombre, 'Costo': costo}
+            print(f"Servicio agregado con éxito. Clave del servicio: {clave_servicio}")
+            break
+        else:
+            print("Datos inválidos. Por favor, asegúrese de que el nombre no esté vacío y el costo sea mayor a 0.00.")
+
+
+def suspender_servicio(servicios_data, clave_servicio):
+    servicio = servicios_data[clave_servicio]
+
+    print(f"\nDatos del Servicio a Suspender:")
+    print(f"Clave: {clave_servicio}")
+    print(f"Nombre: {servicio['Nombre']}")
+    confirmacion = input("¿Está seguro de que desea suspender este servicio? (S/N): ").strip().upper()
+
+    if confirmacion == 'S':
+        
+        del servicios_data[clave_servicio]
+        print(f"Servicio suspendido con éxito: {servicio['Nombre']}")
+    else:
+        print("Operación cancelada.")
+
+def mostrar_menu_servicios():
+    print("\nMenú de Servicios:")
+    print("1. Agregar un servicio")
+    print("2. Suspender un servicio")
+    print("3. Recuperar un servicio")
+    print("4. Regresar al menú principal")
+    
+    
+def mostrar_servicios_activos(servicios_data):
+    print("\nServicios Activos:")
+    print("Clave\tNombre")
+    for clave, servicio in servicios_data.items():
+        print(f"{clave}\t{servicio['Nombre']}")
+
+def gestionar_servicios(servicios_data):
+    while True:
+        mostrar_menu_servicios()
+        opcion_servicios = input("Seleccione una opción del menú de servicios: ").strip()
+
+        if opcion_servicios == '1':
+            agregar_servicio(servicios_data)
+        elif opcion_servicios == '2':
+            mostrar_servicios_activos(servicios_data)
+            clave_servicio = input("Seleccione la clave del servicio a suspender (ingrese 0 para regresar): ").strip()
+
+            if clave_servicio == '0':
+                continue
+
+            if clave_servicio in servicios_data:
+                suspender_servicio(servicios_data, clave_servicio)
+            else:
+                print("Clave de servicio no válida. Inténtelo de nuevo.")
+        elif opcion_servicios == '3':
+            recuperar_servicio(servicios_data)
+        elif opcion_servicios == '4':
+            return  
+        else:
+            print("Opción inválida. Por favor, ingrese un número válido.")
+def recuperar_servicio(servicios_data):
+    while True:
+        
+        print("\nServicios Suspendidos:")
+        for clave, servicio in servicios_data.items():
+            print(f"Clave: {clave}, Nombre: {servicio['Nombre']}")
+
+        clave_servicio = input("Seleccione la clave del servicio a recuperar (ingrese 0 para regresar): ").strip()
+
+        if clave_servicio == '0':
+            break
+
+        if clave_servicio in servicios_data:
+            servicio = servicios_data[clave_servicio]
+           
+            print(f"\nDatos del Servicio a Recuperar:")
+            print(f"Clave: {clave_servicio}")
+            print(f"Nombre: {servicio['Nombre']}")
+            confirmacion = input("¿Está seguro de que desea recuperar este servicio? (S/N): ").strip().upper()
+
+            if confirmacion == 'S':
+                
+                servicio_recuperado = servicios_data.pop(clave_servicio)
+                servicios_activos[clave_servicio] = servicio_recuperado
+                print(f"Servicio recuperado con éxito: {servicio_recuperado['Nombre']}")
+                break
+            else:
+                print("Operación cancelada.")
+        else:
+            print("Clave de servicio no válida. Inténtelo de nuevo.")
+
+
+def buscar_por_clave_servicio():
+    print("Búsqueda por clave de servicio:")
+    print("Listado de servicios disponibles:")
+    print("{:<10} {:<15}".format("Clave", "Nombre del Servicio"))
+    
+    for clave, servicio in servicios_data.items():
+        print("{:<10} {:<15}".format(clave, servicio['Nombre']))
+
+    clave_seleccionada = input("Ingrese la clave del servicio: ").strip()
+
+    if clave_seleccionada in servicios_data:
+        servicio = servicios_data[clave_seleccionada]
+        print("Detalle del servicio:")
+        print(f"Clave: {clave_seleccionada}")
+        print(f"Nombre del Servicio: {servicio['Nombre']}")
+        print(f"Costo: ${servicio['Costo']:.2f}")
+    else:
+        print("No se encontró un servicio con la clave proporcionada.")
+
+def buscar_por_nombre_servicio():
+    print("Búsqueda por nombre de servicio:")
+    nombre_servicio = input("Ingrese el nombre del servicio a buscar (insensible a mayúsculas y minúsculas): ").strip().lower()
+    
+    servicios_coincidentes = [servicio for clave, servicio in servicios_data.items() if nombre_servicio in servicio['Nombre'].lower()]
+    
+    if servicios_coincidentes:
+        print("Servicios encontrados:")
+        for servicio in servicios_coincidentes:
+            print(f"Clave: {clave}")
+            print(f"Nombre del Servicio: {servicio['Nombre']}")
+            print(f"Costo: ${servicio['Costo']:.2f}")
+    else:
+        print("No se encontraron servicios con el nombre proporcionado.")
+
+def consulta_por_servicio():
+    opciones_servicio = ["Búsqueda por clave de servicio", "Búsqueda por nombre de servicio"]
+    seleccion_servicio = mostrar_menu(opciones_servicio)
+
+    if seleccion_servicio == 1:
+        buscar_por_clave_servicio()
+    elif seleccion_servicio == 2:
+        buscar_por_nombre_servicio()
+
+def mostrar_reporte_servicios(servicios, orden):
+    if orden == "clave":
+        titulo_reporte = "Reporte de Servicios Ordenados por Clave"
+        nombre_archivo = f"ReporteServiciosPorClave_{datetime.now().strftime('%m_%d_%Y')}.csv"
+    else:
+        titulo_reporte = "Reporte de Servicios Ordenados por Nombre"
+        nombre_archivo = f"ReporteServiciosPorNombre_{datetime.now().strftime('%m_%d_%Y')}.csv"
+
+    print(titulo_reporte)
+    print("{:<10} {:<25} {:<10}".format("Clave", "Nombre del Servicio", "Costo"))
+    for clave, servicio in servicios:
+        print("{:<10} {:<25} {:<10}".format(clave, servicio['Nombre'], servicio['Costo']))
+
+    exportar_resultado = input("¿Deseas exportar este resultado a CSV, Excel o regresar al menú de reportes? (csv/excel/regresar): ").strip().lower()
+
+    if exportar_resultado == 'csv':
+        exportar_servicios_a_csv(servicios, nombre_archivo)
+    elif exportar_resultado == 'excel':
+        exportar_servicios_a_excel(servicios, nombre_archivo)
+
+def exportar_servicios_a_csv(servicios, nombre_archivo):
+    with open(nombre_archivo, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Clave", "Nombre del Servicio", "Costo"])
+        for clave, servicio in servicios:
+            writer.writerow([clave, servicio['Nombre'], servicio['Costo']])
+    print(f"Reporte exportado a {nombre_archivo}")
+
+
+
+def mostrar_reporte_servicios(servicios, orden):
+
+
+    exportar_resultado = input("¿Deseas exportar este resultado a CSV, Excel o regresar al menú de reportes? (csv/excel/regresar): ").strip().lower()
+
+    if exportar_resultado == 'csv':
+        exportar_servicios_a_csv(servicios, nombre_archivo)
+    elif exportar_resultado == 'excel':
+        exportar_servicios_a_excel(servicios, nombre_archivo)
+def generar_reporte_servicios_mas_prestados():
+    cantidad_servicios = int(input("Ingrese la cantidad de servicios más prestados a identificar: "))
+    fecha_inicial = input("Ingrese la fecha inicial del período a reportar (YYYY-MM-DD): ")
+    fecha_final = input("Ingrese la fecha final del período a reportar (YYYY-MM-DD): ")
+
+    notas_en_rango = {folio: nota for folio, nota in Nota_registrada.items()
+                      if fecha_inicial <= nota['Fecha'] <= fecha_final}
+
+    
+    conteo_servicios = {}
+    for nota in notas_en_rango.values():
+        for servicio in nota['Servicios']:
+            nombre_servicio = servicio['Nombre']
+            if nombre_servicio in conteo_servicios:
+                conteo_servicios[nombre_servicio] += 1
+            else:
+                conteo_servicios[nombre_servicio] = 1
+
+    servicios_mas_prestados = sorted(conteo_servicios.items(), key=lambda x: x[1], reverse=True)[:cantidad_servicios]
+
+    
+    print("\nReporte de Servicios Más Prestados:")
+    print(f"{'Servicio': <30}{'Cantidad de Veces Prestado': <30}")
+    for servicio, cantidad in servicios_mas_prestados:
+        print(f"{servicio: <30}{cantidad: <30}")
+
+    
+    exportar_reporte(servicios_mas_prestados, fecha_inicial, fecha_final, 'ServiciosMasPrestados')
+
+def generar_reporte_clientes_con_mas_notas():
+    cantidad_clientes = int(input("Ingrese la cantidad de clientes con más notas a identificar: "))
+
+    
+    conteo_notas_por_cliente = {}
+    for nota in Nota_registrada.values():
+        cliente = nota['Cliente']['Nombre']
+        if cliente in conteo_notas_por_cliente:
+            conteo_notas_por_cliente[cliente] += 1
+        else:
+            conteo_notas_por_cliente[cliente] = 1
+
+    clientes_con_mas_notas = sorted(conteo_notas_por_cliente.items(), key=lambda x: x[1], reverse=True)[:cantidad_clientes]
+
+    
+    print("\nReporte de Clientes con Más Notas:")
+    print(f"{'Cliente': <30}{'Cantidad de Notas': <30}")
+    for cliente, cantidad in clientes_con_mas_notas:
+        print(f"{cliente: <30}{cantidad: <30}")
+
+    exportar_reporte(clientes_con_mas_notas, '', '', 'ClientesConMasNotas')
+
+def exportar_reporte(datos, fecha_inicial, fecha_final, nombre_reporte):
+    if input("¿Desea exportar el reporte a CSV? (s/n): ").lower() == 's':
+        nombre_archivo = f"Reporte{nombre_reporte}_{fecha_inicial}_{fecha_final}.csv" if fecha_inicial and fecha_final else f"Reporte{nombre_reporte}.csv"
+        with open(nombre_archivo, 'w', newline='') as archivo_csv:
+            escritor_csv = csv.writer(archivo_csv)
+            escritor_csv.writerow(['Nombre', 'Cantidad'])
+            escritor_csv.writerows(datos)
+        print(f"El reporte ha sido exportado como {nombre_archivo}")
+
+
+def main():
+    while True:
+        opcion = mostrar_menu(["Registrar una nota", "Consultas y reportes", "Recuperar una nota cancelada", "Cancelar una nota", "Mostrar notas canceladas", "Salir del sistema"])
+
+        if opcion == 1:
+            registrar_nota()
+        elif opcion == 2:
+            opciones_consulta = ["Consultar por folio", "Consultar por cliente", "Consulta por período", "Consulta por servicio"]
+            seleccion_consulta = mostrar_menu(opciones_consulta)
+
+            if seleccion_consulta == 1:
+                consulta_por_folio()
+            elif seleccion_consulta == 2:
+                consulta_por_cliente()
+            elif seleccion_consulta == 3:
+                consulta_por_periodo()
+            elif seleccion_consulta == 4:
+                consulta_por_servicio()
+
+
+def confirmar_salida():
+    while True:
+        respuesta = input("¿Estás seguro de que deseas salir? (s/n): ").strip().lower()
+        if respuesta == 's':
+            return True
+        elif respuesta == 'n':
+            return False
+        else:
+            print("Opción inválida. Por favor, ingresa 's' para salir o 'n' para regresar al menú principal.")
+
+def mostrar_menu_estadisticas():
+    print("\nEstadísticas:")
+    print("1. Servicios más prestados")
+    print("2. Clientes con más notas")
+
+def main(servicios_data, clientes_data):
+    while True:
+        opcion = mostrar_menu(["Registrar una nota", "Consultas y reportes", "Recuperar una nota cancelada", "Cancelar una nota", "Mostrar notas canceladas", "Mostrar estadísticas", "Servicios", "Clientes", "Salir del sistema"])
+
+        if opcion == 1:
+            registrar_nota()
+        elif opcion == 2:
+            opciones_consulta = ["Consultar por folio", "Consultar por cliente", "Consulta por período", "Consulta por servicio"]
+            seleccion_consulta = mostrar_menu(opciones_consulta)
+
+            if seleccion_consulta == 1:
+                consulta_por_folio()
+            elif seleccion_consulta == 2:
+                consulta_por_cliente()
+            elif seleccion_consulta == 3:
+                consulta_por_periodo()
+            elif seleccion_consulta == 4:
+                consulta_por_servicio()
+        elif opcion == 3:
+            recuperar_nota()
+        elif opcion == 4:
+            cancelar_nota()
+        elif opcion == 5:
+            print("Notas canceladas:")
+            for nota in Notas_canceladas:
+                generar_reporte(nota['Folio'], nota)
+        elif opcion == 6:
+            mostrar_menu_estadisticas()
+            subopcion = input("Ingrese el número de la opción que desea: ")
+
+            if subopcion == '1':
+                generar_reporte_servicios_mas_prestados()
+            elif subopcion == '2':
+                generar_reporte_clientes_con_mas_notas()
+        elif opcion == 7:
+            gestionar_servicios(servicios_data)
+        elif opcion == 8:
+            gestionar_clientes(clientes_data)
+        elif opcion == 9:
+            if confirmar_salida():
+                print("Gracias por usar nuestro sistema.")
+                break
+
+if __name__ == '__main__':
+    servicios_data = {}  
+    clientes_data = {}
+    main(servicios_data, clientes_data)
+
+    clientes_data = {}
+    main
